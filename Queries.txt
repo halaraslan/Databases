@@ -1,0 +1,719 @@
+********************************************
+1 - AZ
+********************************************
+SELECT firstname,
+	   lastname
+FROM employees
+ORDER BY lastname ASC;
+
+********************************************
+2 - AZ
+********************************************
+SELECT salary
+FROM employees
+ORDER BY salary DESC;
+
+********************************************
+3 - AZ
+********************************************
+SELECT AVG(salary),
+	   store_id
+FROM employees
+GROUP BY store_id
+ORDER BY AVG(salary) DESC;
+
+********************************************
+4 - AZ
+********************************************
+SELECT DISTINCT description
+FROM store_position_skill
+	 NATURAL JOIN skills
+WHERE pos_code = '';
+
+********************************************
+5 - AZ
+********************************************
+SELECT description
+FROM employees 
+	 NATURAL JOIN emp_skill
+	 NATURAL JOIN skills
+WHERE empno = '';
+
+********************************************
+6 - AZ
+********************************************
+SELECT DISTINCT description
+FROM skills 
+NATURAL JOIN 
+store_position_skill 
+WHERE pos_code = 'POS00004'
+ AND skill_id NOT IN ( SELECT skill_id
+					   FROM emp_skill
+					   WHERE empno = 'EMP00001');
+
+********************************************
+7 - AZ
+********************************************
+SELECT DISTINCT item_num,
+		    	SUM(salequantity) AS Total_number,
+                SUM(price) AS Total_sales
+FROM sales
+WHERE sale_date BETWEEN '01/01/2014'
+ 					AND '01/01/2019' 
+GROUP BY item_num
+ORDER BY Total_sales DESC;
+
+********************************************
+8 - AZ
+********************************************
+WITH total_sale(item_num, total_sale_sum, total_sale_quantity) AS (
+				SELECT item_num,
+				       SUM(price),
+				       SUM(salequantity)
+				FROM sales
+				WHERE sale_date BETWEEN '01/01/2018' 
+				AND '12/31/2018'
+				GROUP BY item_num) ,
+item_unit_cost(item_num, unit_cost) AS (
+     		    SELECT item_num,
+       		           unit_cost
+      			FROM inventory),
+item_profit(item_num,title, profit) AS (
+				SELECT item_num,
+	 				   title,
+						total_sale_sum - (total_sale_quantity * unit_cost) as profit
+				FROM total_sale
+				NATURAL JOIN item_unit_cost 
+				NATURAL JOIN inventory
+				ORDER BY profit desc  )
+SELECT item_num,
+	   title,
+       profit
+FROM item_profit
+WHERE profit = ( SELECT MAX(profit)
+				 FROM item_profit);
+
+********************************************
+9 - AZ
+********************************************
+SELECT item_num,
+       title
+FROM inventory
+WHERE quantity < min_level;
+
+********************************************
+1 - GV
+********************************************
+SELECT last_name 
+FROM   person 
+       JOIN employs 
+         ON person.per_id = employs.per_id 
+ORDER  BY last_name; 
+
+********************************************
+2 - GV
+********************************************
+SELECT first_name, 
+       last_name 
+FROM   person 
+       JOIN employs 
+         ON person.per_id = employs.per_id 
+ORDER  BY salary DESC; 
+
+********************************************
+3 - GV
+********************************************
+SELECT fac_name, 
+       Avg(salary * 12) 
+FROM   employs 
+       JOIN factory 
+         ON employs.fac_id = factory.fac_id 
+GROUP  BY fac_name 
+ORDER  BY Avg(salary * 12) DESC;
+
+
+********************************************
+4 - GV
+********************************************
+SELECT title 
+FROM   required_by_pos 
+       JOIN skill 
+         ON skill.sk_code = required_by_pos.sk_code 
+WHERE  pos_code = '#Pos0001'; 
+
+
+********************************************
+5 - GV
+********************************************
+SELECT title 
+FROM   has_skill 
+       JOIN skill 
+         ON has_skill.sk_code = skill.sk_code 
+WHERE  per_id = '#P1'; 
+
+********************************************
+6 - GV
+********************************************
+SELECT title 
+FROM   required_by_pos 
+       JOIN skill 
+         ON skill.sk_code = required_by_pos.sk_code 
+WHERE  pos_code = '#Pos0001' 
+       AND title NOT IN (SELECT title 
+                         FROM   has_skill 
+                                JOIN skill 
+                                  ON has_skill.sk_code = skill.sk_code 
+                         WHERE  per_id = '#P1'); 
+
+********************************************
+10 - GV
+********************************************
+SELECT contact_person, 
+       Sum(sale_amount) Totalsales 
+FROM   customer 
+       JOIN cust_purchases 
+         ON customer.cus_id = cust_purchases.comp_id 
+       JOIN contract 
+         ON contract.contract_id = cust_purchases.contract_id 
+WHERE  Extract(year FROM cont_date) = 2018 
+GROUP  BY contact_person;
+
+********************************************
+11 - GV
+********************************************
+SELECT m_code, 
+       m_name 
+FROM   (SELECT material.m_code, 
+               m_name, 
+               Sum(P.quantity) TotalQuantity 
+        FROM   put_line_item P 
+               JOIN material 
+                 ON P.m_code = material.m_code 
+               JOIN purchase 
+                 ON purchase.purchase_num = P.purchase_num 
+        WHERE  Extract(year FROM pay_date) = 2018 
+               AND Extract(month FROM pay_date) IN ( 10, 11, 12 ) 
+        GROUP  BY material.m_code, 
+                  m_name) T 
+WHERE  totalquantity = (SELECT Max(totalquantity) 
+                        FROM   (SELECT material.m_code, 
+                                       m_name, 
+                                       Sum(P.quantity) TotalQuantity 
+                                FROM   put_line_item P 
+                                       JOIN material 
+                                         ON P.m_code = material.m_code 
+                                       JOIN purchase 
+                                         ON 
+                               purchase.purchase_num = P.purchase_num 
+                                WHERE  Extract(year FROM pay_date) = 2018 
+                                       AND Extract(month FROM pay_date) IN 
+                                           ( 10, 11, 12 ) 
+                                GROUP  BY material.m_code, 
+                                          m_name) T1); 
+
+********************************************
+12 - GV
+********************************************
+SELECT fac_name 
+FROM   (SELECT fac_name, 
+               Sum(quantity) TotalQuantity 
+        FROM   factory 
+               JOIN line_item 
+                 ON factory.fac_id = line_item.fac_id 
+               JOIN contract 
+                 ON contract.contract_id = line_item.contract_id 
+        WHERE  Extract(year FROM cont_date) = 2018 
+        GROUP  BY fac_name) T1 
+WHERE  totalquantity = (SELECT Max(totalquantity) 
+                        FROM   (SELECT fac_name, 
+                                       Sum(quantity) TotalQuantity 
+                                FROM   factory 
+                                       JOIN line_item 
+                                         ON factory.fac_id = line_item.fac_id 
+                                       JOIN contract 
+                                         ON contract.contract_id = 
+                                            line_item.contract_id 
+                                WHERE  Extract(year FROM cont_date) = 2018 
+                                GROUP  BY fac_name) T1); 
+
+********************************************
+13 - LD - GENERIC
+********************************************
+select job_code
+from works
+where per_id = '[PER_ID]';
+
+********************************************
+13 - LD - EXAMPLE
+********************************************
+select job_code
+from works
+where per_id = 'BL';
+
+********************************************
+14 - LD - GENERIC
+********************************************
+select per_id, name, title, EXTRACT(YEAR FROM start_date) as STARTING, EXTRACT(YEAR FROM end_date) as ENDING
+from works natural join person natural join job natural join position
+where pos_code = '[POS_CODE]';
+
+********************************************
+14 - LD - EXAMPLE
+********************************************
+select per_id, name, title, EXTRACT(YEAR FROM start_date) as STARTING, EXTRACT(YEAR FROM end_date) as ENDING
+from works natural join person natural join job natural join position
+where pos_code = 'JAV';
+
+********************************************
+15 - LD - GENERIC
+********************************************
+select name
+from person
+where per_id in (select works.per_id
+				from job natural join works 
+				where job.pos_code = '[POS_CODE]' and works.per_id not in (select per_id
+																	from works
+																	where end_date = TO_DATE('01-01-9999', 'DD-MM-YYYY')));
+
+********************************************
+15 - LD - EXAMPLE
+********************************************
+select name
+from person
+where per_id in (select works.per_id
+				from job natural join works 
+				where job.pos_code = 'JAV' and works.per_id not in (select per_id
+																	from works
+																	where end_date = TO_DATE('01-01-9999', 'DD-MM-YYYY')));
+
+********************************************
+16 - LD
+********************************************
+select indtitle as INDUSTRY_NAME, avg(((pay_range_high+pay_range_low)/2.0)) as AVERAGE, max(pay_range_high) as MAX, min(pay_range_low) as MIN
+from subIndustry, Industry, company, job, position
+where subIndustry.parentID = indID
+	and sub_industry = subid
+	and company = comp_id
+	and position.pos_code = job.pos_code
+group by indtitle
+order by indtitle;
+
+********************************************
+17 a - LD - BIGGEST EMPLOYER
+********************************************
+select companyName, count(companyName) as EMPLOYEE_COUNT
+from company, job, position, works
+where company = comp_id
+	and position.pos_code = job.pos_code
+	and job.job_code = works.job_code
+	and EXTRACT(YEAR FROM end_date) = '9999'
+group by companyName
+having count(companyName) >= (	select max(count(companyName))
+								from company, job, position, works
+								where company = comp_id
+									and position.pos_code = job.pos_code
+									and job.job_code = works.job_code
+									and EXTRACT(YEAR FROM end_date) = '9999'
+								group by companyName);
+
+********************************************
+17 b - LD - BIGGEST INDUSTRY
+********************************************
+select indtitle as INDUSTRY_NAME, count(indtitle) as EMPLOYEE_COUNT
+from subIndustry, Industry, company, job, position, works
+where subIndustry.parentID = indID
+	and sub_industry = subid
+	and company = comp_id
+	and position.pos_code = job.pos_code
+	and job.job_code = works.job_code
+	and EXTRACT(YEAR FROM end_date) = '9999'
+group by indtitle
+having count(indtitle) >= (	select max(count(indtitle))
+							from subIndustry, Industry, company, job, position, works
+							where subIndustry.parentID = indID
+								and sub_industry = subid
+								and company = comp_id
+								and position.pos_code = job.pos_code
+								and job.job_code = works.job_code
+								and EXTRACT(YEAR FROM end_date) = '9999'
+							group by indtitle);
+
+********************************************
+17 c - LD - BIGGEST INDUSTRY GROUP
+********************************************
+select indgtitle as INDUSTRY_GROUP_NAME, count(indgtitle) as EMPLOYEE_COUNT
+from industryGroup, subIndustry, Industry, company, job, position, works
+where Industry.parentID = indgid
+	and subIndustry.parentID = indID
+	and sub_industry = subid
+	and company = comp_id
+	and position.pos_code = job.pos_code
+	and job.job_code = works.job_code
+	and EXTRACT(YEAR FROM end_date) = '9999'
+group by indgtitle
+having count(indgtitle) >= (select max(count(indgtitle))
+							from industryGroup, subIndustry, Industry, company, job, position, works
+							where Industry.parentID = indgid
+								and subIndustry.parentID = indID
+								and sub_industry = subid
+								and company = comp_id
+								and position.pos_code = job.pos_code
+								and job.job_code = works.job_code
+								and EXTRACT(YEAR FROM end_date) = '9999'
+							group by indgtitle);
+
+********************************************
+18 - LD
+********************************************
+select indtitle as INDUSTRY_NAME, count(indtitle) as EMPLOYEE_COUNT
+from subIndustry, Industry, company, job, position, works
+where subIndustry.parentID = indID
+	and sub_industry = subid
+	and company = comp_id
+	and position.pos_code = job.pos_code
+	and job.job_code = works.job_code
+	and EXTRACT(YEAR FROM end_date) = '9999'
+group by indtitle;
+
+********************************************
+19 - LD - GENERIC
+********************************************
+select course.c_code, title
+from course, teaches
+where course.c_code = teaches.c_code
+	and sk_code = (	select sk_code
+					from requires_by_job, job, position
+					where requires_by_job.job_code = job.job_code
+						and job.pos_code = position.pos_code
+						and position.pos_code = '[POS_CODE]')
+	and sk_code not in (select sk_code
+						from has_skill
+						where per_id = '[PER_ID]');
+
+********************************************
+19 - LD - EXAMPLE
+********************************************
+select course.c_code, title
+from course, teaches
+where course.c_code = teaches.c_code
+	and sk_code = (	select sk_code
+					from requires_by_job, job, position
+					where requires_by_job.job_code = job.job_code
+						and job.pos_code = position.pos_code
+						and position.pos_code = 'ML')
+	and sk_code not in (select sk_code
+						from has_skill
+						where per_id = 'BL');
+
+********************************************
+20 - LD - GENERIC
+********************************************
+select pos_code
+from position
+where pay_range_high = (select max(pay_range_high)
+						from requires_by_job, job, position
+						where requires_by_job.job_code = job.job_code
+							and job.pos_code = position.pos_code
+							and sk_code in (select sk_code
+											from has_skill
+											where per_id = '[PER_ID]'));
+
+********************************************
+20 - LD - EXAMPLE
+********************************************
+select pos_code
+from position
+where pay_range_high = (select max(pay_range_high)
+						from requires_by_job, job, position
+						where requires_by_job.job_code = job.job_code
+							and job.pos_code = position.pos_code
+							and sk_code in (select sk_code
+											from has_skill
+											where per_id = 'TS'));
+
+********************************************
+21 - LD - GENERIC
+********************************************
+select distinct name, email
+from person natural join has_skill
+where name in (	select name
+				from person natural join has_skill
+				where sk_code in (	select sk_code
+									from requires_by_job 
+										natural join job 
+										natural join position
+									where pos_code = '[POS_CODE]')
+				group by name
+				having count(sk_code) = (	select count(sk_code)
+											from requires_by_job 
+												natural join job 
+												natural join position
+											where pos_code = '[POS_CODE]'));
+
+********************************************
+21 - LD - EXAMPLE
+********************************************
+select distinct name, email
+from person natural join has_skill
+where name in (	select name
+				from person natural join has_skill
+				where sk_code in (	select sk_code
+									from requires_by_job 
+										natural join job 
+										natural join position
+									where pos_code = 'REA')
+				group by name
+				having count(sk_code) = (	select count(sk_code)
+											from requires_by_job 
+												natural join job 
+												natural join position
+											where pos_code = 'REA'));
+
+********************************************
+22 - LD - GENERIC
+********************************************
+select distinct name, email
+from person natural join has_skill
+where name in (	select name
+				from person natural join has_skill
+				where sk_code in (	select sk_code
+									from requires_by_job 
+										natural join job 
+										natural join position
+									where pos_code = '[POS_CODE]')
+				group by name
+				having count(sk_code) = (	select count(sk_code)
+											from requires_by_job 
+												natural join job 
+												natural join position
+											where pos_code = '[POS_CODE]')-[K]);
+
+********************************************
+22 - LD - EXAMPLE
+********************************************
+select distinct name, email
+from person natural join has_skill
+where name in (	select name
+				from person natural join has_skill
+				where sk_code in (	select sk_code
+									from requires_by_job 
+										natural join job 
+										natural join position
+									where pos_code = 'REA')
+				group by name
+				having count(sk_code) = (	select count(sk_code)
+											from requires_by_job 
+												natural join job 
+												natural join position
+											where pos_code = 'REA')-1);
+
+********************************************
+23 - LD - GENERIC
+********************************************
+select name, (	select count(sk_code)
+				from requires_by_job 
+					natural join job 
+					natural join position
+				where pos_code = '[POS_CODE]')-count(sk_code) as NumSkillsMissing
+from person natural join has_skill
+where sk_code in (	select sk_code
+					from requires_by_job 
+						natural join job 
+						natural join position
+					where pos_code = '[POS_CODE]')
+group by name
+having count(sk_code) >= all (	select count(sk_code)
+								from person natural join has_skill
+								where sk_code in (	select sk_code
+													from requires_by_job 
+														natural join job 
+														natural join position
+													where pos_code = '[POS_CODE]')
+								group by name);
+
+********************************************
+23 - LD - EXAMPLE
+********************************************
+select name, (	select count(sk_code)
+				from requires_by_job 
+					natural join job 
+					natural join position
+				where pos_code = 'CRD')-count(sk_code) as NumSkillsMissing
+from person natural join has_skill
+where sk_code in (	select sk_code
+					from requires_by_job 
+						natural join job 
+						natural join position
+					where pos_code = 'CRD')
+group by name
+having count(sk_code) >= all (	select count(sk_code)
+								from person natural join has_skill
+								where sk_code in (	select sk_code
+													from requires_by_job 
+														natural join job 
+														natural join position
+													where pos_code = 'CRD')
+								group by name);
+
+********************************************
+24 - LD - GENERIC
+********************************************
+select sk_code, count(name)
+from (	select name, sk_Code
+		from person, has_skill
+		where sk_code in (	select sk_code
+							from requires_by_job 
+								natural join job 
+								natural join position
+							where pos_code = '[POS_CODE]')
+		minus
+		select name, sk_Code
+		from person natural join has_skill
+		where sk_code in (	select sk_code
+							from requires_by_job 
+								natural join job 
+								natural join position
+							where pos_code = '[POS_CODE]'))
+where name in (	select name
+				from person natural join has_skill
+				where sk_code in (	select sk_code
+									from requires_by_job 
+										natural join job 
+										natural join position
+									where pos_code = '[POS_CODE]')
+				group by name
+				having count(sk_code) >= (	select count(sk_code)
+											from requires_by_job 
+												natural join job 
+												natural join position
+											where pos_code = '[POS_CODE]')-[K])
+group by sk_code;
+
+********************************************
+24 - LD - EXAMPLE
+********************************************
+select sk_code, count(name)
+from (	select name, sk_Code
+		from person, has_skill
+		where sk_code in (	select sk_code
+							from requires_by_job 
+								natural join job 
+								natural join position
+							where pos_code = 'CRD')
+		minus
+		select name, sk_Code
+		from person natural join has_skill
+		where sk_code in (	select sk_code
+							from requires_by_job 
+								natural join job 
+								natural join position
+							where pos_code = 'CRD'))
+where name in (	select name
+				from person natural join has_skill
+				where sk_code in (	select sk_code
+									from requires_by_job 
+										natural join job 
+										natural join position
+									where pos_code = 'CRD')
+				group by name
+				having count(sk_code) >= (	select count(sk_code)
+											from requires_by_job 
+												natural join job 
+												natural join position
+											where pos_code = 'CRD')-2)
+group by sk_code;
+
+********************************************
+25 - LD
+********************************************
+select name
+from person natural join works
+	natural join job
+	natural join position
+	natural join hiring, company
+where hiring.comp_id = company.comp_id
+	and (name, industry_group, pay_range_high, end_date) in (	select name, industry_group, max(pay_range_high) as pay, max(end_date)
+																from person natural join works
+																	natural join job
+																	natural join position
+																	natural join hiring, company
+																where hiring.comp_id = company.comp_id
+																group by (name, industry_group))
+group by name
+having count(industry_group) = 1;
+
+********************************************
+26 - LD
+********************************************
+select pos_code
+from hiring natural join job
+	natural join requires_by_job
+where (job_code, comp_id) not in (	select job_code, comp_id
+									from works natural join job
+										natural join hiring
+									group by job_code, comp_id)
+minus
+select pos_code
+from hiring natural join job
+	natural join requires_by_job
+	natural join has_skill
+where (job_code, comp_id) not in (	select job_code, comp_id
+									from works natural join job
+										natural join hiring
+									group by job_code, comp_id);
+
+********************************************
+27 - LD
+********************************************
+select c_code, title
+from course natural join teaches
+where sk_code in (	select sk_code
+					from hiring natural join job
+						natural join requires_by_job
+					where (job_code, comp_id) not in (	select job_code, comp_id
+														from works natural join job
+															natural join hiring
+														group by job_code, comp_id)
+					minus
+					select sk_code
+					from hiring natural join job
+						natural join requires_by_job
+						natural join has_skill
+					where (job_code, comp_id) not in (	select job_code, comp_id
+														from works natural join job
+															natural join hiring
+														group by job_code, comp_id));
+
+********************************************
+28 - LD - GENERIC
+********************************************
+select title
+from course natural join teaches
+	natural join requires_by_job
+where job_code = '[JOB_CODE]'
+minus
+select title
+from course natural join teaches
+	natural join has_skill
+where per_id = '[PER_ID]' 
+	and sk_code in (select sk_code
+					from course natural join teaches
+						natural join requires_by_job
+					where job_code = '[JOB_CODE]');
+
+********************************************
+28 - LD - EXAMPLE
+********************************************
+select title
+from course natural join teaches
+	natural join requires_by_job
+where job_code = '20'
+minus
+select title
+from course natural join teaches
+	natural join has_skill
+where per_id = 'PT' 
+	and sk_code in (select sk_code
+					from course natural join teaches
+						natural join requires_by_job
+					where job_code = '20');
